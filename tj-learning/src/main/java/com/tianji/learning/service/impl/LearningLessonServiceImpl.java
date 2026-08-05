@@ -1,0 +1,110 @@
+package com.tianji.learning.service.impl;
+
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.tianji.api.client.course.CourseClient;
+import com.tianji.api.dto.course.CourseSimpleInfoDTO;
+import com.tianji.common.domain.dto.PageDTO;
+import com.tianji.common.domain.query.PageQuery;
+import com.tianji.common.exceptions.BadRequestException;
+import com.tianji.common.utils.BeanUtils;
+import com.tianji.common.utils.CollUtils;
+import com.tianji.common.utils.UserContext;
+import com.tianji.learning.domain.po.LearningLesson;
+import com.tianji.learning.domain.vo.LearningLessonVO;
+import com.tianji.learning.mapper.LearningLessonMapper;
+import com.tianji.learning.service.ILearningLessonService;
+import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+/**
+ * <p>
+ * 学生课程表 服务实现类
+ * </p>
+ *
+ * @author author
+ * @since 2026-08-05
+ */
+@Service
+@Slf4j
+@RequiredArgsConstructor
+public class LearningLessonServiceImpl extends ServiceImpl<LearningLessonMapper, LearningLesson> implements ILearningLessonService {
+
+    private final CourseClient courseClient;
+
+    @Override
+    @Transactional
+    public void addUserLessons(Long userId, List<Long> courseIds) {
+        //查询课程有效期
+        List<CourseSimpleInfoDTO> classInfoList = courseClient.getSimpleInfoList(courseIds);
+        if(CollUtils.isEmpty(classInfoList)){
+            //课程不存在
+            log.error("课程不存在");
+            return;
+        }
+        //循环遍历，处理LearningLesson对象
+        List<LearningLesson> list = new ArrayList<>(classInfoList.size());
+        for (CourseSimpleInfoDTO course : classInfoList) {
+            LearningLesson lesson = new LearningLesson();
+            //获取过期的时间
+            Integer validDuration = course.getValidDuration();
+            if (validDuration != null && validDuration > 0) {
+                LocalDateTime now = LocalDateTime.now();
+                lesson.setCreateTime(now);
+                lesson.setExpireTime(now.plusMonths(validDuration));
+            }
+            lesson.setUserId(userId);
+            lesson.setCourseId(course.getId());
+            list.add(lesson);
+        }
+        //批量新增
+        saveBatch(list);
+    }
+
+    @Override
+    public PageDTO<LearningLessonVO> queryMyLessons(PageQuery query) {
+        //获取当前登录用户
+        Long userId = UserContext.getUser();
+        //分页查询
+        Page<LearningLesson> page = lambdaQuery()
+                .eq(LearningLesson::getUserId, userId)
+                .page(query.toMpPage("latest_learn_time", false));
+        List<LearningLesson> records = page.getRecords();
+        if(CollUtils.isEmpty(records)){
+            return PageDTO.empty(page);
+        }
+
+        //查询课程信息
+        Set<Long> cIds = records.stream().map(LearningLesson::getCourseId).collect(Collectors.toSet());
+        List<CourseSimpleInfoDTO> classInfoList = courseClient.getSimpleInfoList(cIds);
+        if(CollUtils.isEmpty(classInfoList)){
+            throw new BadRequestException("课程信息不存在");
+        }
+
+        //把课程集合处理为一个Map key是courseId,值是course本身
+        Map<Long, CourseSimpleInfoDTO> cMap = classInfoList.stream()
+                .collect(Collectors.toMap(CourseSimpleInfoDTO::getId, c -> c));
+
+        //封装返回结果
+        List<LearningLessonVO> list = new ArrayList<>(records.size());
+        for (LearningLesson r : records) {
+            LearningLessonVO vo = BeanUtils.copyBean(r, LearningLessonVO.class);
+            //获取课程信息
+            CourseSimpleInfoDTO cInfo = cMap.get(r.getCourseId());
+            vo.setCourseName(cInfo.getName());
+            vo.setCourseCoverUrl(cInfo.getCoverUrl());
+            vo.setSections(cInfo.getSectionNum());
+            list.add(vo);
+        }
+        return PageDTO.of(page, list);
+    }
+}
