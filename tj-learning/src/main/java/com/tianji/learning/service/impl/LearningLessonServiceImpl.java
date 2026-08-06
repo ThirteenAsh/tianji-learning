@@ -1,5 +1,7 @@
 package com.tianji.learning.service.impl;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.tianji.api.client.course.CourseClient;
 import com.tianji.api.dto.course.CourseSimpleInfoDTO;
@@ -106,5 +108,35 @@ public class LearningLessonServiceImpl extends ServiceImpl<LearningLessonMapper,
             list.add(vo);
         }
         return PageDTO.of(page, list);
+    }
+
+    @Override
+    public void deleteCourseFromLesson(Long userId, Long courseId) {
+        // 1.获取当前登录用户
+        if (userId == null) {
+            userId = UserContext.getUser();
+        }
+        // 2.删除课程
+        remove(buildUserIdAndCourseIdWrapper(userId, courseId));
+    }
+
+    @Override
+    public LearningLessonVO queryLessonByCourseId(Long courseId) {
+        // 1.获取当前登录用户
+        Long userId = UserContext.getUser();
+        // 2.查询课程信息 select * from xx where user_id = #{userId} AND course_id = #{courseId}
+        LearningLesson lesson = getOne(buildUserIdAndCourseIdWrapper(userId, courseId));
+        if (lesson == null) {
+            return null;
+        }
+        // 3.处理VO
+        return BeanUtils.copyBean(lesson, LearningLessonVO.class);
+    }
+
+    private LambdaQueryWrapper<LearningLesson> buildUserIdAndCourseIdWrapper(Long userId, Long courseId) {
+        return new QueryWrapper<LearningLesson>()
+                .lambda()
+                .eq(LearningLesson::getUserId, userId)
+                .eq(LearningLesson::getCourseId, courseId);
     }
 }
