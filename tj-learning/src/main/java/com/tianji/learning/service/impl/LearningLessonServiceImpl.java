@@ -205,6 +205,11 @@ public class LearningLessonServiceImpl extends ServiceImpl<LearningLessonMapper,
                 .count();
     }
 
+    @Override
+    public LearningLesson queryByUserIdAndCourseId(Long userId, Long courseId) {
+        return getOne(buildUserIdAndCourseIdWrapper(userId, courseId));
+    }
+
 
     private LambdaQueryWrapper<LearningLesson> buildUserIdAndCourseIdWrapper(Long userId, Long courseId) {
         return new QueryWrapper<LearningLesson>()
