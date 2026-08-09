@@ -13,4 +13,5 @@ import com.baomidou.mybatisplus.core.mapper.BaseMapper;
  */
 public interface LearningLessonMapper extends BaseMapper<LearningLesson> {
 
+    Integer queryTotalPlan(Long userId);
 }

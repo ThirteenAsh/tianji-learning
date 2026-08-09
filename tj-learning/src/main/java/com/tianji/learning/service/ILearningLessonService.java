@@ -5,7 +5,11 @@ import com.tianji.common.domain.query.PageQuery;
 import com.tianji.learning.domain.po.LearningLesson;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.tianji.learning.domain.vo.LearningLessonVO;
+import com.tianji.learning.domain.vo.LearningPlanPageVO;
+import org.hibernate.validator.constraints.Range;
 
+import javax.validation.constraints.Min;
+import javax.validation.constraints.NotNull;
 import java.util.List;
 
 /**
@@ -33,4 +37,8 @@ public interface ILearningLessonService extends IService<LearningLesson> {
     Integer countLearningLessonByCourse(Long courseId);
 
     LearningLesson queryByUserIdAndCourseId(Long userId, Long courseId);
+
+    void createLearningPlan(Long courseId, Integer freq);
+
+    LearningPlanPageVO queryMyPlans(PageQuery query);
 }
