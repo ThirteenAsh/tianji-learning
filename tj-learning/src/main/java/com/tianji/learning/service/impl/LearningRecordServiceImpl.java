@@ -17,10 +17,12 @@ import com.tianji.learning.mapper.LearningRecordMapper;
 import com.tianji.learning.service.ILearningLessonService;
 import com.tianji.learning.service.ILearningRecordService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.tianji.learning.utils.LearningRecordDelayTaskHandler;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import javax.validation.constraints.NotNull;
 import java.util.List;
 
 /**
@@ -35,6 +37,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class LearningRecordServiceImpl extends ServiceImpl<LearningRecordMapper, LearningRecord> implements ILearningRecordService {
 
+    private final LearningRecordDelayTaskHandler taskHandler;
     private final ILearningLessonService lessonService;
     private final CourseClient courseClient;
 
@@ -74,16 +77,18 @@ public class LearningRecordServiceImpl extends ServiceImpl<LearningRecordMapper,
             //处理考试
             finished = handleExamRecord(recordDTO, userId);
         }
-
-        handleLearningLesson(recordDTO, finished);
+        if(!finished){
+            //没有新学完的小节，则不需要更新课表，直接返回
+            return;
+        }
+        handleLearningLesson(recordDTO);
     }
 
     /**
      * 处理学习课表
      * @param recordDTO
-     * @param finished
      */
-    private void handleLearningLesson(LearningRecordFormDTO recordDTO, boolean finished) {
+    private void handleLearningLesson(LearningRecordFormDTO recordDTO) {
         // 1.查询课表
         LearningLesson lesson = lessonService.getById(recordDTO.getLessonId());
         if (lesson == null) {
@@ -117,10 +122,7 @@ public class LearningRecordServiceImpl extends ServiceImpl<LearningRecordMapper,
      */
     private boolean handleVideoRecord(LearningRecordFormDTO recordDTO, Long userId) {
         //查询旧的学习记录
-        LearningRecord oldRecord = lambdaQuery()
-                .eq(LearningRecord::getLessonId, recordDTO.getLessonId())
-                .eq(LearningRecord::getSectionId, recordDTO.getSectionId())
-                .one();
+        LearningRecord oldRecord = queryOldRecord(recordDTO.getLessonId(), recordDTO.getSectionId());
         //判断是否存在
         if (oldRecord == null) {
             //不存在则新增
@@ -135,17 +137,49 @@ public class LearningRecordServiceImpl extends ServiceImpl<LearningRecordMapper,
         //存在则更新
         //旧状态是未完成，且本次播放进度超过总时长的一半，则认为完成学习
         boolean finished = !oldRecord.getFinished() && recordDTO.getMoment() * 2 >= recordDTO.getDuration();
+        //如果未完成，则添加延迟任务，异步更新moment
+        if(!finished){
+            LearningRecord record = new LearningRecord();
+            record.setLessonId(recordDTO.getLessonId());
+            record.setSectionId(recordDTO.getSectionId());
+            record.setMoment(recordDTO.getMoment());
+            record.setId(oldRecord.getId());
+            record.setFinished(oldRecord.getFinished());
+            taskHandler.addLearningRecordTask(record);
+            return false;
+        }
         //更新记录
         boolean success = lambdaUpdate()
                 .set(LearningRecord::getMoment, recordDTO.getMoment())
-                .set(finished, LearningRecord::getFinished, true)
-                .set(finished, LearningRecord::getFinishTime, recordDTO.getCommitTime())
+                .set(LearningRecord::getFinished, true)
+                .set(LearningRecord::getFinishTime, recordDTO.getCommitTime())
                 .eq(LearningRecord::getId, oldRecord.getId())
                 .update();
         if (!success) {
             throw new DbException("更新学习记录失败");
         }
-        return finished;
+        //清理缓存，保证数据一致性
+        taskHandler.cleanRecordCache(recordDTO.getLessonId(), recordDTO.getSectionId());
+        return true;
+    }
+
+    private LearningRecord queryOldRecord(@NotNull(message = "课表id不能为空") Long lessonId, Long sectionId) {
+        //查询缓存
+        LearningRecord record = taskHandler.readRecordCache(lessonId, sectionId);
+        //命中直接返回
+        if (record != null) {
+            return record;
+        }
+        //查询数据库
+        record = lambdaQuery()
+                .eq(LearningRecord::getLessonId, lessonId)
+                .eq(LearningRecord::getSectionId, sectionId)
+                .one();
+        //写入缓存
+        if (record != null) {
+            taskHandler.writeRecordCache(record);
+        }
+        return record;
     }
 
     /**
@@ -164,6 +198,6 @@ public class LearningRecordServiceImpl extends ServiceImpl<LearningRecordMapper,
         if(!success){
             throw new DbException("新增学习记录失败");
         }
-        return false;
+        return true;
     }
 }
