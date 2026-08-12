@@ -8,6 +8,7 @@ import com.tianji.learning.domain.query.QuestionAdminPageQuery;
 import com.tianji.learning.domain.query.QuestionPageQuery;
 import com.tianji.learning.domain.vo.QuestionAdminVO;
 import com.tianji.learning.domain.vo.QuestionVO;
+import org.springframework.transaction.annotation.Transactional;
 
 import javax.validation.Valid;
 
@@ -30,4 +31,10 @@ public interface IInteractionQuestionService extends IService<InteractionQuestio
     PageDTO<QuestionAdminVO> queryQuestionPageAdmin(QuestionAdminPageQuery query);
 
     QuestionAdminVO queryQuestionByIdAdmin(Long id);
+
+    void hiddenQuestion(Long id, Boolean hidden);
+
+    void updateQuestion(Long id, QuestionFormDTO questionDTO);
+
+    void deleteById(Long id);
 }

@@ -1,5 +1,6 @@
 package com.tianji.learning.service.impl;
 
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.tianji.api.cache.CategoryCache;
 import com.tianji.api.client.course.CatalogueClient;
@@ -29,6 +30,7 @@ import com.tianji.learning.service.IInteractionQuestionService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.*;
@@ -295,5 +297,58 @@ public class InteractionQuestionServiceImpl extends ServiceImpl<InteractionQuest
         vo.setSectionName(cataMap.getOrDefault(question.getSectionId(), ""));
         // 6.封装VO
         return vo;
+    }
+
+    @Override
+    public void hiddenQuestion(Long id, Boolean hidden) {
+        // 1.更新问题
+        InteractionQuestion question = new InteractionQuestion();
+        question.setId(id);
+        question.setHidden(hidden);
+        updateById(question);
+    }
+
+    @Override
+    public void updateQuestion(Long id, QuestionFormDTO questionDTO) {
+        // 1.获取当前登录用户
+        Long userId = UserContext.getUser();
+        // 2.查询当前问题
+        InteractionQuestion q = getById(id);
+        if (q == null) {
+            throw new BadRequestException("问题不存在");
+        }
+        // 3.判断是否是当前用户的问题
+        if (!q.getUserId().equals(userId)) {
+            // 不是，抛出异常
+            throw new BadRequestException("无权修改他人的问题");
+        }
+        // 4.修改问题
+        InteractionQuestion question = BeanUtils.toBean(questionDTO, InteractionQuestion.class);
+        question.setId(id);
+        updateById(question);
+    }
+
+
+    @Override
+    @Transactional
+    public void deleteById(Long id) {
+        // 1.获取当前登录用户
+        Long userId = UserContext.getUser();
+        // 2.查询当前问题
+        InteractionQuestion q = getById(id);
+        if (q == null) {
+            return;
+        }
+        // 3.判断是否是当前用户的问题
+        if (!q.getUserId().equals(userId)) {
+            // 不是，抛出异常
+            throw new BadRequestException("无权删除他人的问题");
+        }
+        // 4.删除问题
+        removeById(id);
+        // 5.删除答案
+        replyMapper.delete(
+                new QueryWrapper<InteractionReply>().lambda().eq(InteractionReply::getQuestionId, id)
+        );
     }
 }
