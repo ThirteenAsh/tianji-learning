@@ -28,4 +28,6 @@ public interface IInteractionQuestionService extends IService<InteractionQuestio
     QuestionVO queryQuestionById(Long id);
 
     PageDTO<QuestionAdminVO> queryQuestionPageAdmin(QuestionAdminPageQuery query);
+
+    QuestionAdminVO queryQuestionByIdAdmin(Long id);
 }

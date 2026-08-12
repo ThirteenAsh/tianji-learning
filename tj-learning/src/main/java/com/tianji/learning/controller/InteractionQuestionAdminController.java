@@ -31,4 +31,10 @@ public class InteractionQuestionAdminController {
     public PageDTO<QuestionAdminVO> queryQuestionPageAdmin(QuestionAdminPageQuery query){
         return questionService.queryQuestionPageAdmin(query);
     }
+
+    @ApiOperation("管理端根据id查询互动问题")
+    @GetMapping("{id}")
+    public QuestionAdminVO queryQuestionByIdAdmin(@PathVariable("id") Long id){
+        return questionService.queryQuestionByIdAdmin(id);
+    }
 }
