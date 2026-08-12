@@ -4,7 +4,9 @@ import com.tianji.common.domain.dto.PageDTO;
 import com.tianji.learning.domain.dto.QuestionFormDTO;
 import com.tianji.learning.domain.po.InteractionQuestion;
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.tianji.learning.domain.query.QuestionAdminPageQuery;
 import com.tianji.learning.domain.query.QuestionPageQuery;
+import com.tianji.learning.domain.vo.QuestionAdminVO;
 import com.tianji.learning.domain.vo.QuestionVO;
 
 import javax.validation.Valid;
@@ -24,4 +26,6 @@ public interface IInteractionQuestionService extends IService<InteractionQuestio
     PageDTO<QuestionVO> queryQuestionPage(QuestionPageQuery query);
 
     QuestionVO queryQuestionById(Long id);
+
+    PageDTO<QuestionAdminVO> queryQuestionPageAdmin(QuestionAdminPageQuery query);
 }
