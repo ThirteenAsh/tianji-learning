@@ -48,6 +48,7 @@ public class InteractionReplyServiceImpl extends ServiceImpl<InteractionReplyMap
     @Override
     @Transactional
     public void saveReply(ReplyDTO replyDTO) {
+        boolean isStudent = Boolean.TRUE.equals(replyDTO.getIsStudent());
         // 1.获取登录用户
         Long userId = UserContext.getUser();
         // 2.新增回答
@@ -64,6 +65,12 @@ public class InteractionReplyServiceImpl extends ServiceImpl<InteractionReplyMap
                     .eq(InteractionReply::getId, replyDTO.getAnswerId())
                     .update();
         }
+
+        // 老师评论时，问题表无字段需要更新
+        if (!isAnswer && !isStudent) {
+            return;
+        }
+
         // 3.3.尝试更新问题表中的状态、 最近一次回答、回答数量
         questionService.lambdaUpdate()
                 .set(isAnswer, InteractionQuestion::getLatestAnswerId, reply.getId())
