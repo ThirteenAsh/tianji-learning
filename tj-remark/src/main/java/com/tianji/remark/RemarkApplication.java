@@ -2,16 +2,17 @@ package com.tianji.remark;
 
 import lombok.extern.slf4j.Slf4j;
 import org.mybatis.spring.annotation.MapperScan;
-import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.builder.SpringApplicationBuilder;
 import org.springframework.core.env.Environment;
+import org.springframework.scheduling.annotation.EnableScheduling;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 
 @SpringBootApplication
 @Slf4j
+@EnableScheduling
 @MapperScan("com.tianji.remark.mapper")
 public class RemarkApplication {
     public static void main(String[] args) throws UnknownHostException {

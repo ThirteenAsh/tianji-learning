@@ -30,11 +30,15 @@ public class LikeTimesChangeListener {
             exchange = @Exchange(name = LIKE_RECORD_EXCHANGE, type = ExchangeTypes.TOPIC),
             key = QA_LIKED_TIMES_KEY
     ))
-    public void listenReplyLikedTimesChange(LikedTimesDTO likedTimesDTO){
+    public void listenReplyLikedTimesChange(List<LikedTimesDTO> likedTimesDTOs){
         log.debug("监听到回答或评论的点赞数变更");
-        InteractionReply r = new InteractionReply();
-        r.setId(likedTimesDTO.getBizId());
-        r.setLikedTimes(likedTimesDTO.getLikedTimes());
-        replyService.updateById(r);
+        List<InteractionReply> replies = new ArrayList<>(likedTimesDTOs.size());
+        for (LikedTimesDTO DTO : likedTimesDTOs) {
+            InteractionReply r = new InteractionReply();
+            r.setId(DTO.getBizId());
+            r.setLikedTimes(DTO.getLikedTimes());
+            replies.add(r);
+        }
+        replyService.updateBatchById(replies);
     }
 }

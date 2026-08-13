@@ -28,7 +28,8 @@ import static com.tianji.common.constants.MqConstants.Key.LIKED_TIMES_KEY_TEMPLA
  * @author ThirteenAsh
  * @since 2026-08-13
  */
-@Service
+//此为MySQL实现类，若使用Redis实现，则使用LikedRecordServiceRedisImpl
+//@Service
 @RequiredArgsConstructor
 public class LikedRecordServiceImpl extends ServiceImpl<LikedRecordMapper, LikedRecord> implements ILikedRecordService {
 
@@ -65,6 +66,11 @@ public class LikedRecordServiceImpl extends ServiceImpl<LikedRecordMapper, Liked
                 .list();
         // 3.返回结果
         return list.stream().map(LikedRecord::getBizId).collect(Collectors.toSet());
+    }
+
+    @Override
+    public void readLikedTimesAndSendMessage(String bizType, int maxBizSize) {
+
     }
 
     private boolean unlike(LikeRecordFormDTO recordDTO) {
