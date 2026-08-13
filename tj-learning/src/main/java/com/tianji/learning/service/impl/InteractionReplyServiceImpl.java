@@ -2,6 +2,7 @@ package com.tianji.learning.service.impl;
 
 import com.baomidou.mybatisplus.core.metadata.OrderItem;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.tianji.api.client.remark.RemarkClient;
 import com.tianji.api.client.user.UserClient;
 import com.tianji.api.dto.user.UserDTO;
 import com.tianji.common.domain.dto.PageDTO;
@@ -44,6 +45,7 @@ public class InteractionReplyServiceImpl extends ServiceImpl<InteractionReplyMap
 
     private final IInteractionQuestionService questionService;
     private final UserClient userClient;
+    private final RemarkClient remarkClient;
 
     @Override
     @Transactional
@@ -135,8 +137,8 @@ public class InteractionReplyServiceImpl extends ServiceImpl<InteractionReplyMap
             List<UserDTO> users = userClient.queryUserByIds(userIds);
             userMap = users.stream().collect(Collectors.toMap(UserDTO::getId, u -> u));
         }
-        // 3.4. TODO 查询用户点赞状态
-        //Set<Long> bizLiked = remarkClient.isBizLiked(answerIds);
+        // 3.4. 查询用户点赞状态
+        Set<Long> bizLiked = remarkClient.isBizLiked(answerIds);
         // 4.处理VO
         List<ReplyVO> list = new ArrayList<>(records.size());
         for (InteractionReply r : records) {
@@ -159,8 +161,8 @@ public class InteractionReplyServiceImpl extends ServiceImpl<InteractionReplyMap
                     v.setTargetUserName(targetUser.getName());
                 }
             }
-            // 4.4. TODO 点赞状态
-            //v.setLiked(bizLiked.contains(r.getId()));
+            // 4.4.4 点赞状态
+            v.setLiked(bizLiked.contains(r.getId()));
         }
         return new PageDTO<>(page.getTotal(), page.getPages(), list);
     }
@@ -211,8 +213,8 @@ public class InteractionReplyServiceImpl extends ServiceImpl<InteractionReplyMap
         Map<Long, UserDTO> userMap = new HashMap<>(userIds.size());
         List<UserDTO> users = userClient.queryUserByIds(userIds);
         userMap = users.stream().collect(Collectors.toMap(UserDTO::getId, u -> u));
-        // 2.4. TODO 查询用户点赞状态
-        // Set<Long> bizLiked = remarkClient.isBizLiked(CollUtils.singletonList(id));
+        // 2.4. 查询用户点赞状态
+        Set<Long> bizLiked = remarkClient.isBizLiked(CollUtils.singletonList(id));
         // 4.处理VO
         // 4.1.拷贝基础属性
         ReplyVO v = BeanUtils.toBean(r, ReplyVO.class);
@@ -228,8 +230,8 @@ public class InteractionReplyServiceImpl extends ServiceImpl<InteractionReplyMap
         if (targetUser != null) {
             v.setTargetUserName(targetUser.getName());
         }
-        // 4.4. TODO 点赞状态
-        // v.setLiked(bizLiked.contains(id));
+        // 4.4. 点赞状态
+        v.setLiked(bizLiked.contains(id));
         return v;
     }
 }
