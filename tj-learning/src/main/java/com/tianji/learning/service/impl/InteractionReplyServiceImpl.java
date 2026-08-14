@@ -2,27 +2,31 @@ package com.tianji.learning.service.impl;
 
 import com.baomidou.mybatisplus.core.metadata.OrderItem;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.tianji.api.client.remark.RemarkClient;
 import com.tianji.api.client.user.UserClient;
 import com.tianji.api.dto.user.UserDTO;
+import com.tianji.common.autoconfigure.mq.RabbitMqHelper;
+import com.tianji.common.constants.MqConstants;
 import com.tianji.common.domain.dto.PageDTO;
 import com.tianji.common.exceptions.BadRequestException;
 import com.tianji.common.utils.BeanUtils;
 import com.tianji.common.utils.CollUtils;
 import com.tianji.common.utils.UserContext;
 import com.tianji.learning.domain.dto.ReplyDTO;
-import com.tianji.learning.domain.po.InteractionReply;
 import com.tianji.learning.domain.po.InteractionQuestion;
+import com.tianji.learning.domain.po.InteractionReply;
 import com.tianji.learning.domain.query.ReplyPageQuery;
 import com.tianji.learning.domain.vo.ReplyVO;
 import com.tianji.learning.enums.QuestionStatus;
 import com.tianji.learning.mapper.InteractionReplyMapper;
 import com.tianji.learning.service.IInteractionQuestionService;
 import com.tianji.learning.service.IInteractionReplyService;
-import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.util.*;
 import java.util.function.Predicate;
@@ -46,6 +50,7 @@ public class InteractionReplyServiceImpl extends ServiceImpl<InteractionReplyMap
     private final IInteractionQuestionService questionService;
     private final UserClient userClient;
     private final RemarkClient remarkClient;
+    private final RabbitMqHelper mqHelper;
 
     @Override
     @Transactional
@@ -60,6 +65,18 @@ public class InteractionReplyServiceImpl extends ServiceImpl<InteractionReplyMap
         // 3.累加评论数或者累加回答数
         // 3.1.判断当前回复的类型是否是回答
         boolean isAnswer = replyDTO.getAnswerId() == null;
+        // 回答一个问题，发送积分消息，在事务提交后发送
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                if (isAnswer && isStudent) {
+                    mqHelper.send(
+                            MqConstants.Exchange.LEARNING_EXCHANGE,
+                            MqConstants.Key.WRITE_REPLY,
+                            userId);
+                }
+            }
+        });
         if (!isAnswer) {
             // 3.2.是评论，则需要更新上级回答的评论数量
             lambdaUpdate()

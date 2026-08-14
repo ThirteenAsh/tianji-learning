@@ -3,8 +3,8 @@ package com.tianji.learning.controller;
 
 import com.tianji.common.domain.dto.PageDTO;
 import com.tianji.learning.domain.dto.ReplyDTO;
-import com.tianji.learning.domain.vo.ReplyVO;
 import com.tianji.learning.domain.query.ReplyPageQuery;
+import com.tianji.learning.domain.vo.ReplyVO;
 import com.tianji.learning.service.IInteractionReplyService;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;

@@ -1,7 +1,7 @@
 package com.tianji.learning.service;
 
-import com.tianji.learning.domain.po.PointsBoard;
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.tianji.learning.domain.po.PointsBoard;
 
 /**
  * <p>

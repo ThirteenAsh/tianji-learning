@@ -1,9 +1,12 @@
 package com.tianji.learning.service.impl;
 
+import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.tianji.api.client.course.CourseClient;
 import com.tianji.api.dto.course.CourseFullInfoDTO;
 import com.tianji.api.dto.leanring.LearningLessonDTO;
 import com.tianji.api.dto.leanring.LearningRecordDTO;
+import com.tianji.common.autoconfigure.mq.RabbitMqHelper;
+import com.tianji.common.constants.MqConstants;
 import com.tianji.common.exceptions.BizIllegalException;
 import com.tianji.common.exceptions.DbException;
 import com.tianji.common.utils.BeanUtils;
@@ -16,11 +19,12 @@ import com.tianji.learning.enums.SectionType;
 import com.tianji.learning.mapper.LearningRecordMapper;
 import com.tianji.learning.service.ILearningLessonService;
 import com.tianji.learning.service.ILearningRecordService;
-import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.tianji.learning.utils.LearningRecordDelayTaskHandler;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import javax.validation.constraints.NotNull;
 import java.util.List;
@@ -40,6 +44,7 @@ public class LearningRecordServiceImpl extends ServiceImpl<LearningRecordMapper,
     private final LearningRecordDelayTaskHandler taskHandler;
     private final ILearningLessonService lessonService;
     private final CourseClient courseClient;
+    private final RabbitMqHelper mqHelper;
 
     @Override
     public LearningLessonDTO queryLearningRecordByCourse(Long courseId) {
@@ -81,6 +86,16 @@ public class LearningRecordServiceImpl extends ServiceImpl<LearningRecordMapper,
             //没有新学完的小节，则不需要更新课表，直接返回
             return;
         }
+        // 学完视频（包括第一次考试），发送积分消息，事务提交后再发
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                mqHelper.send(
+                        MqConstants.Exchange.LEARNING_EXCHANGE,
+                        MqConstants.Key.LEARN_SECTION,
+                        userId);
+            }
+        });
         handleLearningLesson(recordDTO);
     }
 
