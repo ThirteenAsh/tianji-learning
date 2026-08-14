@@ -1,7 +1,11 @@
 package com.tianji.learning.service;
 
-import com.tianji.learning.domain.po.PointsRecord;
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.tianji.learning.domain.po.PointsRecord;
+import com.tianji.learning.domain.vo.PointsStatisticsVO;
+import com.tianji.learning.enums.PointsRecordType;
+
+import java.util.List;
 
 /**
  * <p>
@@ -13,4 +17,7 @@ import com.baomidou.mybatisplus.extension.service.IService;
  */
 public interface IPointsRecordService extends IService<PointsRecord> {
 
+    void addPointsRecord(Long userId, int i, PointsRecordType pointsRecordType);
+
+    List<PointsStatisticsVO> queryMyPointsToday();
 }
