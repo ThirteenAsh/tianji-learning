@@ -20,8 +20,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
+ * 学习积分记录服务实现。
  * <p>
- * 学习积分记录，每个月底清零 服务实现类
+ * 负责记录签到、完成小节、互动回答等行为产生的积分，并依据积分类型限制每日可获得的上限。
+ * 写入积分明细后，同步维护 Redis 中当月积分排行榜的累计分值；积分明细按月度业务规则清零。
  * </p>
  *
  * @author ThirteenAsh
@@ -33,6 +35,14 @@ public class PointsRecordServiceImpl extends ServiceImpl<PointsRecordMapper, Poi
 
     private final StringRedisTemplate redisTemplate;
 
+    /**
+     * 记录指定用户的学习积分，并同步累加当月实时排行榜积分。
+     * <p>对于配置了每日上限的积分类型，会按当日已获积分截断本次积分；达到上限时不再写入记录。</p>
+     *
+     * @param userId 积分归属用户
+     * @param points 本次拟增加的积分
+     * @param type 积分来源类型及其上限规则
+     */
     @Override
     public void addPointsRecord(Long userId, int points, PointsRecordType type) {
         LocalDateTime now = LocalDateTime.now();
@@ -66,6 +76,11 @@ public class PointsRecordServiceImpl extends ServiceImpl<PointsRecordMapper, Poi
         redisTemplate.opsForZSet().incrementScore(key, userId.toString(), realPoints);
     }
 
+    /**
+     * 汇总当前登录用户当天按积分来源分类的获得情况。
+     *
+     * @return 各积分类型的当日已获积分及每日上限
+     */
     @Override
     public List<PointsStatisticsVO> queryMyPointsToday() {
         // 1.获取用户

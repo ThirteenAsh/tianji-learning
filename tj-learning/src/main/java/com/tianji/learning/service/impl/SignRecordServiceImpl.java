@@ -19,6 +19,14 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDate;
 import java.util.List;
 
+/**
+ * 用户月度签到服务实现。
+ * <p>
+ * 以 Redis 位图按用户、按月保存每日签到状态；签到成功后计算从当日向前连续签到的天数，
+ * 并在达到 7、14、28 天时发放阶梯奖励积分。积分明细通过消息队列异步记录，
+ * 避免签到流程与积分持久化强耦合。
+ * </p>
+ */
 @Service
 @RequiredArgsConstructor
 public class SignRecordServiceImpl implements ISignRecordService {
@@ -26,6 +34,12 @@ public class SignRecordServiceImpl implements ISignRecordService {
     private final StringRedisTemplate redisTemplate;
     private final RabbitMqHelper mqHelper;
 
+    /**
+     * 为当前登录用户完成当日签到，并计算本次签到获得的基础积分和连续签到奖励。
+     *
+     * @return 当月连续签到天数及本次额外奖励积分
+     * @throws BizIllegalException 当天已经签到时抛出
+     */
     @Override
     public SignResultVO addSignRecords() {
         // 1.签到
@@ -71,6 +85,11 @@ public class SignRecordServiceImpl implements ISignRecordService {
         return vo;
     }
 
+    /**
+     * 查询当前登录用户当月截至今日的签到状态。
+     *
+     * @return 按日期顺序排列的签到标记，{@code 1} 表示已签到，{@code 0} 表示未签到
+     */
     @Override
     public Byte[] querySignRecords() {
         // 1.获取登录用户

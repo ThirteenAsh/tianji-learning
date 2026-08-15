@@ -38,8 +38,10 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
+ * 学生课程表与学习计划服务实现。
  * <p>
- * 学生课程表 服务实现类
+ * 管理用户已购课程的有效期、学习状态和最近学习位置，并聚合课程与目录信息提供“我的课程”展示。
+ * 同时维护周学习频次计划，统计本周计划小节数及已完成小节数。
  * </p>
  *
  * @author author
@@ -54,6 +56,12 @@ public class LearningLessonServiceImpl extends ServiceImpl<LearningLessonMapper,
     private final CatalogueClient catalogueClient;
     private final LearningRecordMapper recordMapper;
 
+    /**
+     * 将用户购买的课程批量加入课表，并按课程有效期设置过期时间。
+     *
+     * @param userId 购课用户编号
+     * @param courseIds 已购买的课程编号集合
+     */
     @Override
     @Transactional
     public void addUserLessons(Long userId, List<Long> courseIds) {
@@ -83,6 +91,12 @@ public class LearningLessonServiceImpl extends ServiceImpl<LearningLessonMapper,
         saveBatch(list);
     }
 
+    /**
+     * 分页查询当前登录用户的课程，并补充课程名称、封面和小节总数。
+     *
+     * @param query 分页条件
+     * @return 按最近学习时间倒序排列的个人课程页
+     */
     @Override
     public PageDTO<LearningLessonVO> queryMyLessons(PageQuery query) {
         //获取当前登录用户
@@ -125,6 +139,12 @@ public class LearningLessonServiceImpl extends ServiceImpl<LearningLessonMapper,
                 .collect(Collectors.toMap(CourseSimpleInfoDTO::getId, c -> c));
     }
 
+    /**
+     * 从用户课表中移除指定课程；未显式传入用户时删除当前登录用户的课表记录。
+     *
+     * @param userId 用户编号，可为空
+     * @param courseId 要移除的课程编号
+     */
     @Override
     public void deleteCourseFromLesson(Long userId, Long courseId) {
         // 1.获取当前登录用户
@@ -135,6 +155,12 @@ public class LearningLessonServiceImpl extends ServiceImpl<LearningLessonMapper,
         remove(buildUserIdAndCourseIdWrapper(userId, courseId));
     }
 
+    /**
+     * 查询当前登录用户指定课程的课表信息。
+     *
+     * @param courseId 课程编号
+     * @return 课表信息；课程不在个人课表中时返回 {@code null}
+     */
     @Override
     public LearningLessonVO queryLessonByCourseId(Long courseId) {
         // 1.获取当前登录用户
@@ -148,6 +174,11 @@ public class LearningLessonServiceImpl extends ServiceImpl<LearningLessonMapper,
         return BeanUtils.copyBean(lesson, LearningLessonVO.class);
     }
 
+    /**
+     * 查询当前登录用户最近学习的一门进行中课程，并补充课程和最近小节信息。
+     *
+     * @return 当前学习课程；不存在进行中课程时返回 {@code null}
+     */
     @Override
     public LearningLessonVO queryMyCurrentLesson() {
         // 1.获取当前登录的用户
@@ -188,6 +219,12 @@ public class LearningLessonServiceImpl extends ServiceImpl<LearningLessonMapper,
         return vo;
     }
 
+    /**
+     * 校验当前登录用户是否拥有指定课程且课表记录有效。
+     *
+     * @param courseId 课程编号
+     * @return 对应课表编号；未登录或课程不在课表中时返回 {@code null}
+     */
     @Override
     public Long isLessonValid(Long courseId) {
         // 1.获取登录用户
@@ -203,6 +240,12 @@ public class LearningLessonServiceImpl extends ServiceImpl<LearningLessonMapper,
         return lesson.getId();
     }
 
+    /**
+     * 统计指定课程的有效学习人数。
+     *
+     * @param courseId 课程编号
+     * @return 状态为未开始、学习中或已完成的课表记录数量
+     */
     @Override
     public Integer countLearningLessonByCourse(Long courseId) {
         // select count(1) from xx where course_id = #{cc} AND status in (0, 1, 2)
@@ -215,11 +258,24 @@ public class LearningLessonServiceImpl extends ServiceImpl<LearningLessonMapper,
                 .count();
     }
 
+    /**
+     * 查询指定用户在指定课程中的课表记录。
+     *
+     * @param userId 用户编号
+     * @param courseId 课程编号
+     * @return 课表记录；不存在时返回 {@code null}
+     */
     @Override
     public LearningLesson queryByUserIdAndCourseId(Long userId, Long courseId) {
         return getOne(buildUserIdAndCourseIdWrapper(userId, courseId));
     }
 
+    /**
+     * 为当前登录用户的指定课程创建或更新每周学习频次计划。
+     *
+     * @param courseId 课程编号
+     * @param freq 每周计划学习的小节数
+     */
     @Override
     public void createLearningPlan(Long courseId, Integer freq) {
         // 1.获取当前登录的用户
@@ -237,6 +293,12 @@ public class LearningLessonServiceImpl extends ServiceImpl<LearningLessonMapper,
         updateById(l);
     }
 
+    /**
+     * 分页查询当前登录用户正在执行的学习计划，并汇总本周计划和完成的小节数量。
+     *
+     * @param query 分页条件
+     * @return 周学习统计及课程学习计划列表
+     */
     @Override
     public LearningPlanPageVO queryMyPlans(PageQuery query) {
         LearningPlanPageVO result = new LearningPlanPageVO();

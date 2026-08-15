@@ -36,8 +36,10 @@ import static com.tianji.common.constants.Constant.DATA_FIELD_NAME_CREATE_TIME;
 import static com.tianji.common.constants.Constant.DATA_FIELD_NAME_LIKED_TIME;
 
 /**
+ * 互动问答回复服务实现。
  * <p>
- * 互动问题的回答或评论 服务实现类
+ * 支持对问题发布回答以及对回答继续评论，维护问题的回答数、最近回答和待审核状态。
+ * 学员回答问题后在事务提交时异步发放积分；查询时遵守匿名和隐藏规则，并补充用户与点赞信息。
  * </p>
  *
  * @author ThirteenAsh
@@ -52,6 +54,12 @@ public class InteractionReplyServiceImpl extends ServiceImpl<InteractionReplyMap
     private final RemarkClient remarkClient;
     private final RabbitMqHelper mqHelper;
 
+    /**
+     * 发布当前登录用户对问题的回答或对已有回答的评论。
+     * <p>新增回答会更新问题的回答数和最近回答；学员回答问题后，在事务提交时异步发送积分消息。</p>
+     *
+     * @param replyDTO 回复内容、所属问题及目标回答等数据
+     */
     @Override
     @Transactional
     public void saveReply(ReplyDTO replyDTO) {
@@ -100,6 +108,14 @@ public class InteractionReplyServiceImpl extends ServiceImpl<InteractionReplyMap
 
     }
 
+    /**
+     * 分页查询问题下的回答或回答下的评论，并补充用户、目标用户和点赞状态。
+     * <p>普通查询会过滤隐藏内容并保护匿名身份，运营端查询可查看完整信息。</p>
+     *
+     * @param query 问题或回答编号及分页条件，两者至少提供一个
+     * @param forAdmin 是否按运营端权限查询
+     * @return 回复分页结果
+     */
     @Override
     public PageDTO<ReplyVO> queryReplyPage(ReplyPageQuery query, boolean forAdmin) {
         // 1.问题id和回答id至少要有一个，先做参数判断
@@ -184,6 +200,12 @@ public class InteractionReplyServiceImpl extends ServiceImpl<InteractionReplyMap
         return new PageDTO<>(page.getTotal(), page.getPages(), list);
     }
 
+    /**
+     * 设置回答或评论的隐藏状态；隐藏回答时同步处理其直属评论。
+     *
+     * @param id 回答或评论编号
+     * @param hidden 是否隐藏
+     */
     @Override
     @Transactional
     public void hiddenReply(Long id, Boolean hidden) {
@@ -211,6 +233,12 @@ public class InteractionReplyServiceImpl extends ServiceImpl<InteractionReplyMap
                 .update();
     }
 
+    /**
+     * 查询单条回复详情，并补充回复人、被回复人及当前用户点赞状态。
+     *
+     * @param id 回复编号
+     * @return 回复详情
+     */
     @Override
     public ReplyVO queryReplyById(Long id) {
         // 1.根据id查询

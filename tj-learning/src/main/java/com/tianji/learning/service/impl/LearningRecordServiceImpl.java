@@ -30,8 +30,10 @@ import javax.validation.constraints.NotNull;
 import java.util.List;
 
 /**
+ * 课程小节学习记录服务实现。
  * <p>
- * 学习记录表 服务实现类
+ * 负责记录视频播放进度与考试完成情况；首次完成小节时更新课表的学习进度和课程状态，
+ * 并在事务提交后发送学习积分消息。未完成的视频进度通过延迟任务异步落库，减少高频播放上报的数据库写入。
  * </p>
  *
  * @author author
@@ -46,6 +48,12 @@ public class LearningRecordServiceImpl extends ServiceImpl<LearningRecordMapper,
     private final CourseClient courseClient;
     private final RabbitMqHelper mqHelper;
 
+    /**
+     * 查询当前登录用户在指定课程中的课表进度及全部小节学习记录。
+     *
+     * @param courseId 课程编号
+     * @return 课表与学习记录；用户未拥有该课程时返回 {@code null}
+     */
     @Override
     public LearningLessonDTO queryLearningRecordByCourse(Long courseId) {
         //获取登录用户
@@ -67,6 +75,12 @@ public class LearningRecordServiceImpl extends ServiceImpl<LearningRecordMapper,
         return dto;
     }
 
+    /**
+     * 上报当前登录用户的小节学习进度或考试完成记录。
+     * <p>只有首次完成小节时才会更新课表进度，并在事务提交后发送学习积分消息。</p>
+     *
+     * @param recordDTO 小节类型、播放进度或考试提交时间等学习数据
+     */
     @Override
     @Transactional
     public void addLearningRecord(LearningRecordFormDTO recordDTO) {

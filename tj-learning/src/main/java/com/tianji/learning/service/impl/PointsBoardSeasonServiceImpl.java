@@ -10,8 +10,9 @@ import java.time.LocalDateTime;
 import java.util.Optional;
 
 /**
+ * 积分排行榜赛季服务实现。
  * <p>
- *  服务实现类
+ * 根据指定时间匹配其所属的积分榜赛季，为榜单归档、历史赛季查询等业务提供赛季标识。
  * </p>
  *
  * @author ThirteenAsh
@@ -20,6 +21,12 @@ import java.util.Optional;
 @Service
 public class PointsBoardSeasonServiceImpl extends ServiceImpl<PointsBoardSeasonMapper, PointsBoardSeason> implements IPointsBoardSeasonService {
 
+    /**
+     * 查询指定时间所属的积分排行榜赛季。
+     *
+     * @param time 待匹配的业务时间
+     * @return 赛季编号；没有匹配赛季时返回 {@code null}
+     */
     @Override
     public Integer querySeasonByTime(LocalDateTime time) {
         Optional<PointsBoardSeason> optional = lambdaQuery()

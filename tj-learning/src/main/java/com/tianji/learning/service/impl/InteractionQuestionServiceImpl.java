@@ -37,8 +37,10 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 /**
+ * 课程互动提问服务实现。
  * <p>
- * 互动提问的问题表 服务实现类
+ * 负责学员问题的发布、查询、编辑、删除和运营端管理，支持按课程、小节及个人维度筛选。
+ * 面向学员的查询会过滤隐藏内容并保护匿名身份；运营端查询会聚合提问者、课程、分类和章节信息。
  * </p>
  *
  * @author ThirteenAsh
@@ -55,6 +57,11 @@ public class InteractionQuestionServiceImpl extends ServiceImpl<InteractionQuest
     private final CourseClient courseClient;
     private final CatalogueClient catalogueClient;
 
+    /**
+     * 以当前登录用户身份发布课程互动问题。
+     *
+     * @param questionDTO 问题内容、课程及章节归属等信息
+     */
     @Override
     public void saveQuestion(QuestionFormDTO questionDTO) {
         // 1.获取当前登录的用户id
@@ -66,6 +73,13 @@ public class InteractionQuestionServiceImpl extends ServiceImpl<InteractionQuest
         save(question);
     }
 
+    /**
+     * 按课程、小节或“仅看我的”条件分页查询面向学员的问题列表。
+     * <p>隐藏问题不会出现在结果中；匿名问题和匿名最近回答不会暴露用户信息。</p>
+     *
+     * @param query 查询与分页条件，课程编号和小节编号至少提供一个
+     * @return 包含提问者和最近回答摘要的问题分页结果
+     */
     @Override
     public PageDTO<QuestionVO> queryQuestionPage(QuestionPageQuery query) {
         // 1.参数校验，课程id和小节id不能都为空
@@ -148,6 +162,12 @@ public class InteractionQuestionServiceImpl extends ServiceImpl<InteractionQuest
         return PageDTO.of(page, voList);
     }
 
+    /**
+     * 查询单个问题的学员端详情。
+     *
+     * @param id 问题编号
+     * @return 问题详情；问题不存在或已隐藏时返回 {@code null}
+     */
     @Override
     public QuestionVO queryQuestionById(Long id) {
         // 1.根据id查询数据
@@ -171,6 +191,12 @@ public class InteractionQuestionServiceImpl extends ServiceImpl<InteractionQuest
         return vo;
     }
 
+    /**
+     * 按课程名称、状态和时间范围分页查询运营端问题列表。
+     *
+     * @param query 运营端筛选及分页条件
+     * @return 补充用户、课程、分类和章节信息的问题分页结果
+     */
     @Override
     public PageDTO<QuestionAdminVO> queryQuestionPageAdmin(QuestionAdminPageQuery query) {
         // 1.处理课程名称，得到课程id
@@ -254,6 +280,12 @@ public class InteractionQuestionServiceImpl extends ServiceImpl<InteractionQuest
         return PageDTO.of(page, voList);
     }
 
+    /**
+     * 查询单个问题的运营端详情，包括提问者、课程教师及章节信息。
+     *
+     * @param id 问题编号
+     * @return 运营端问题详情；问题不存在时返回 {@code null}
+     */
     @Override
     public QuestionAdminVO queryQuestionByIdAdmin(Long id) {
         // 1.根据id查询问题
@@ -299,6 +331,12 @@ public class InteractionQuestionServiceImpl extends ServiceImpl<InteractionQuest
         return vo;
     }
 
+    /**
+     * 设置问题的隐藏状态，供运营端进行内容审核和管理。
+     *
+     * @param id 问题编号
+     * @param hidden 是否隐藏
+     */
     @Override
     public void hiddenQuestion(Long id, Boolean hidden) {
         // 1.更新问题
@@ -308,6 +346,13 @@ public class InteractionQuestionServiceImpl extends ServiceImpl<InteractionQuest
         updateById(question);
     }
 
+    /**
+     * 修改当前登录用户本人发布的问题。
+     *
+     * @param id 问题编号
+     * @param questionDTO 更新后的问题内容和归属信息
+     * @throws BadRequestException 问题不存在或不属于当前用户时抛出
+     */
     @Override
     public void updateQuestion(Long id, QuestionFormDTO questionDTO) {
         // 1.获取当前登录用户
@@ -329,6 +374,12 @@ public class InteractionQuestionServiceImpl extends ServiceImpl<InteractionQuest
     }
 
 
+    /**
+     * 删除当前登录用户本人发布的问题，并级联删除该问题下的全部回复。
+     *
+     * @param id 问题编号
+     * @throws BadRequestException 问题不属于当前用户时抛出
+     */
     @Override
     @Transactional
     public void deleteById(Long id) {
