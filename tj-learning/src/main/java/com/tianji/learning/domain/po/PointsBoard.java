@@ -29,7 +29,7 @@ public class PointsBoard implements Serializable {
     private static final long serialVersionUID = 1L;
 
     @ApiModelProperty(value = "榜单id")
-    @TableId(value = "id", type = IdType.AUTO)
+    @TableId(value = "id", type = IdType.INPUT)
     private Long id;
 
     @ApiModelProperty(value = "学生id")
