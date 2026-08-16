@@ -105,6 +105,12 @@ public class CouponServiceImpl extends ServiceImpl<CouponMapper, Coupon> impleme
         return PageDTO.of(page, list);
     }
 
+    /**
+     * 根据id查询优惠券
+     *
+     * @param id 优惠券id
+     * @return 优惠券详情VO
+     */
     @Override
     public CouponDetailVO queryCouponById(Long id) {
         // 1.查询优惠券
@@ -128,6 +134,11 @@ public class CouponServiceImpl extends ServiceImpl<CouponMapper, Coupon> impleme
         return vo;
     }
 
+    /**
+     * 发放优惠券
+     *
+     * @param dto 优惠券发放表单数据传输对象
+     */
     @Override
     public void beginIssue(CouponIssueFormDTO dto) {
         // 1.查询优惠券
@@ -155,6 +166,43 @@ public class CouponServiceImpl extends ServiceImpl<CouponMapper, Coupon> impleme
         }
         // 4.3.写入数据库
         updateById(c);
+
+        // TODO 5.写入缓存
+    }
+
+    /**
+     * 暂停发放优惠券
+     *
+     * @param id 优惠券id
+     */
+    @Override
+    public void pauseIssue(Long id) {
+        // 1.查询旧优惠券
+        Coupon coupon = getById(id);
+        if (coupon == null) {
+            throw new BadRequestException("优惠券不存在");
+        }
+
+        // 2.当前券状态必须是未开始或进行中
+        CouponStatus status = coupon.getStatus();
+        if (status != UN_ISSUE && status != ISSUING) {
+            // 状态错误，直接结束
+            return;
+        }
+
+        // 3.更新状态
+        boolean success = lambdaUpdate()
+                .set(Coupon::getStatus, PAUSE)
+                .eq(Coupon::getId, id)
+                .in(Coupon::getStatus, UN_ISSUE, ISSUING)
+                .update();
+        if (!success) {
+            // 可能是重复更新，结束
+            log.error("重复暂停优惠券");
+        }
+
+        // 4. TODO 删除缓存
+        //redisTemplate.delete(PromotionConstants.COUPON_CACHE_KEY_PREFIX + id);
     }
 
 }
