@@ -17,10 +17,12 @@ import com.tianji.promotion.domain.vo.CouponDetailVO;
 import com.tianji.promotion.domain.vo.CouponPageVO;
 import com.tianji.promotion.domain.vo.CouponScopeVO;
 import com.tianji.promotion.enums.CouponStatus;
+import com.tianji.promotion.enums.ObtainType;
 import com.tianji.promotion.mapper.CouponMapper;
 import com.tianji.promotion.service.ICouponScopeService;
 import com.tianji.promotion.service.ICouponService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.tianji.promotion.service.IExchangeCodeService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -45,6 +47,7 @@ public class CouponServiceImpl extends ServiceImpl<CouponMapper, Coupon> impleme
 
     private final ICouponScopeService scopeService;
     private final CategoryCache categoryCache;
+    private final IExchangeCodeService codeService;
 
     /**
      * 新增优惠券
@@ -168,6 +171,12 @@ public class CouponServiceImpl extends ServiceImpl<CouponMapper, Coupon> impleme
         updateById(c);
 
         // TODO 5.写入缓存
+
+        // 6.判断是否需要生成兑换码，优惠券类型必须是兑换码，优惠券状态必须是待发放
+        if(coupon.getObtainWay() == ObtainType.ISSUE && coupon.getStatus() == CouponStatus.DRAFT){
+            coupon.setIssueEndTime(c.getIssueEndTime());
+            codeService.asyncGenerateCode(coupon);
+        }
     }
 
     /**
