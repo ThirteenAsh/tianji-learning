@@ -2,6 +2,7 @@ package com.tianji.promotion.service;
 
 import com.tianji.common.domain.dto.PageDTO;
 import com.tianji.promotion.domain.dto.CouponFormDTO;
+import com.tianji.promotion.domain.dto.CouponIssueFormDTO;
 import com.tianji.promotion.domain.po.Coupon;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.tianji.promotion.domain.query.CouponQuery;
@@ -25,4 +26,6 @@ public interface ICouponService extends IService<Coupon> {
     PageDTO<CouponPageVO> queryCouponByPage(CouponQuery query);
 
     CouponDetailVO queryCouponById(Long id);
+
+    void beginIssue(@Valid CouponIssueFormDTO dto);
 }

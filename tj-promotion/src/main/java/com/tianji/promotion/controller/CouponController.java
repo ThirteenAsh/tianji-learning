@@ -3,6 +3,7 @@ package com.tianji.promotion.controller;
 
 import com.tianji.common.domain.dto.PageDTO;
 import com.tianji.promotion.domain.dto.CouponFormDTO;
+import com.tianji.promotion.domain.dto.CouponIssueFormDTO;
 import com.tianji.promotion.domain.query.CouponQuery;
 import com.tianji.promotion.domain.vo.CouponDetailVO;
 import com.tianji.promotion.domain.vo.CouponPageVO;
@@ -47,6 +48,12 @@ public class CouponController {
     @GetMapping("/{id}")
     public CouponDetailVO queryCouponById(@ApiParam("优惠券id") @PathVariable("id") Long id){
         return couponService.queryCouponById(id);
+    }
+
+    @ApiOperation("发放优惠券接口")
+    @PutMapping("/{id}/issue")
+    public void beginIssue(@RequestBody @Valid CouponIssueFormDTO dto) {
+        couponService.beginIssue(dto);
     }
 
 }
