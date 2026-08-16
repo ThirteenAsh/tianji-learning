@@ -61,4 +61,10 @@ public class CouponController {
     public void pauseIssue(@ApiParam("优惠券id") @PathVariable("id") Long id) {
         couponService.pauseIssue(id);
     }
+
+    @ApiOperation("删除优惠券")
+    @DeleteMapping("{id}")
+    public void deleteById(@ApiParam("优惠券id") @PathVariable("id") Long id) {
+        couponService.deleteById(id);
+    }
 }

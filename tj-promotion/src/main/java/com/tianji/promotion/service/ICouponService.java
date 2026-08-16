@@ -30,4 +30,6 @@ public interface ICouponService extends IService<Coupon> {
     void beginIssue(@Valid CouponIssueFormDTO dto);
 
     void pauseIssue(Long id);
+
+    void deleteById(Long id);
 }

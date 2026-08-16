@@ -1,5 +1,6 @@
 package com.tianji.promotion.service.impl;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.tianji.api.cache.CategoryCache;
 import com.tianji.common.domain.dto.PageDTO;
@@ -212,6 +213,28 @@ public class CouponServiceImpl extends ServiceImpl<CouponMapper, Coupon> impleme
 
         // 4. TODO 删除缓存
         //redisTemplate.delete(PromotionConstants.COUPON_CACHE_KEY_PREFIX + id);
+    }
+
+    @Override
+    public void deleteById(Long id) {
+        // 1.查询
+        Coupon coupon = getById(id);
+        if (coupon == null || coupon.getStatus() != DRAFT) {
+            throw new BadRequestException("优惠券不存在或者优惠券正在使用中");
+        }
+        // 2.删除优惠券
+        boolean success = remove(new LambdaQueryWrapper<Coupon>()
+                .eq(Coupon::getId, id)
+                .eq(Coupon::getStatus, DRAFT)
+        );
+        if (!success) {
+            throw new BadRequestException("优惠券不存在或者优惠券正在使用中");
+        }
+        // 3.删除优惠券对应限定范围
+        if(!coupon.getSpecific()){
+            return;
+        }
+        scopeService.remove(new LambdaQueryWrapper<CouponScope>().eq(CouponScope::getCouponId, id));
     }
 
 }
