@@ -4,10 +4,12 @@ package com.tianji.promotion.controller;
 import com.tianji.common.domain.dto.PageDTO;
 import com.tianji.promotion.domain.dto.CouponFormDTO;
 import com.tianji.promotion.domain.query.CouponQuery;
+import com.tianji.promotion.domain.vo.CouponDetailVO;
 import com.tianji.promotion.domain.vo.CouponPageVO;
 import com.tianji.promotion.service.ICouponService;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
+import io.swagger.annotations.ApiParam;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
@@ -39,6 +41,12 @@ public class CouponController {
     @GetMapping("/page")
     public PageDTO<CouponPageVO> queryCouponByPage(CouponQuery query){
         return couponService.queryCouponByPage(query);
+    }
+
+    @ApiOperation("根据id查询优惠券接口")
+    @GetMapping("/{id}")
+    public CouponDetailVO queryCouponById(@ApiParam("优惠券id") @PathVariable("id") Long id){
+        return couponService.queryCouponById(id);
     }
 
 }
