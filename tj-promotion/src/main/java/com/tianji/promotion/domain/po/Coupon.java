@@ -1,5 +1,6 @@
 package com.tianji.promotion.domain.po;
 
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
@@ -36,6 +37,7 @@ public class Coupon implements Serializable {
     @TableId(value = "id", type = IdType.ASSIGN_ID)
     private Long id;
 
+    @TableField("`name`")
     @ApiModelProperty(value = "优惠券名称，可以和活动名称保持一致")
     private String name;
 
@@ -45,6 +47,7 @@ public class Coupon implements Serializable {
     @ApiModelProperty(value = "折扣类型，1：满减，2：每满减，3：折扣，4：无门槛")
     private DiscountType discountType;
 
+    @TableField("`specific`")
     @ApiModelProperty(value = "是否限定作用范围，false：不限定，true：限定。默认false")
     private Boolean specific;
 

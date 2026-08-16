@@ -1,7 +1,10 @@
 package com.tianji.promotion.service;
 
+import com.tianji.promotion.domain.dto.CouponFormDTO;
 import com.tianji.promotion.domain.po.Coupon;
 import com.baomidou.mybatisplus.extension.service.IService;
+
+import javax.validation.Valid;
 
 /**
  * <p>
@@ -13,4 +16,5 @@ import com.baomidou.mybatisplus.extension.service.IService;
  */
 public interface ICouponService extends IService<Coupon> {
 
+    void saveCoupon(@Valid CouponFormDTO dto);
 }
