@@ -78,8 +78,11 @@ public class UserCouponServiceImpl extends ServiceImpl<UserCouponMapper, UserCou
         if(count != null && count >= coupon.getUserLimit()){
             throw new BadRequestException("超出领取数量");
         }
-        // 5.扣减优惠券库存
-        couponMapper.incrIssueNum(couponId);
+        // 5.扣减优惠券库存 乐观锁解决超卖问题
+        int r = couponMapper.incrIssueNum(couponId);
+        if(r == 0){
+            throw new BizIllegalException("优惠券库存不足");
+        }
         // 6.保存用户领取记录
         saveUserCoupon(couponId, userId, coupon, now);
     }
