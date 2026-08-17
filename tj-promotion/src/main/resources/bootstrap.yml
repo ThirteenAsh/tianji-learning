@@ -42,6 +42,8 @@ tj:
   auth:
     resource:
       enable: true # 开启登录拦截的功能
+      exclude-login-paths:
+        - /coupons/list
   mq:
     listener:
       retry:
