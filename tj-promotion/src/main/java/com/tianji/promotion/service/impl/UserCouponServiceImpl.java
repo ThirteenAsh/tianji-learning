@@ -14,6 +14,7 @@ import com.tianji.promotion.service.IUserCouponService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.tianji.promotion.utils.CodeUtil;
 import lombok.RequiredArgsConstructor;
+import org.springframework.aop.framework.AopContext;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -56,7 +57,11 @@ public class UserCouponServiceImpl extends ServiceImpl<UserCouponMapper, UserCou
             throw new BadRequestException("优惠券库存不足");
         }
         Long userId = UserContext.getUser();
-        checkAndCreate(couponId, userId, coupon, now);
+        // 3.1.加用户锁，一人一单 intern 返回的是字符串常量池中的值，保证同一个用户的锁是同一个值
+        synchronized (userId.toString().intern()) {
+            IUserCouponService userCouponService = (IUserCouponService) AopContext.currentProxy();
+            userCouponService.checkAndCreate(couponId, userId, coupon);
+        }
     }
 
     /**
@@ -65,9 +70,11 @@ public class UserCouponServiceImpl extends ServiceImpl<UserCouponMapper, UserCou
      * @param couponId 优惠券ID
      * @param userId   用户ID
      * @param coupon   优惠券对象
-     * @param now      当前时间
      */
-    private void checkAndCreate(Long couponId, Long userId, Coupon coupon, LocalDateTime now) {
+    @Transactional
+    @Override
+    public void checkAndCreate(Long couponId, Long userId, Coupon coupon) {
+        LocalDateTime now = LocalDateTime.now();
         // 4.校验每人限领数量
         // 4.1.查询领取数量
         Integer count = lambdaQuery()
@@ -75,12 +82,12 @@ public class UserCouponServiceImpl extends ServiceImpl<UserCouponMapper, UserCou
                 .eq(UserCoupon::getCouponId, couponId)
                 .count();
         // 4.2.校验限领数量
-        if(count != null && count >= coupon.getUserLimit()){
+        if (count != null && count >= coupon.getUserLimit()) {
             throw new BadRequestException("超出领取数量");
         }
         // 5.扣减优惠券库存 乐观锁解决超卖问题
         int r = couponMapper.incrIssueNum(couponId);
-        if(r == 0){
+        if (r == 0) {
             throw new BizIllegalException("优惠券库存不足");
         }
         // 6.保存用户领取记录
@@ -93,7 +100,6 @@ public class UserCouponServiceImpl extends ServiceImpl<UserCouponMapper, UserCou
      * @param code 优惠券兑换码
      */
     @Override
-    @Transactional
     public void exchangeCoupon(String code) {
         // 1.校验并解析兑换码
         long serialNum = CodeUtil.parseCode(code);
@@ -116,7 +122,9 @@ public class UserCouponServiceImpl extends ServiceImpl<UserCouponMapper, UserCou
             }
             // 5.保存用户领取记录
             Long userId = UserContext.getUser();
-            checkAndCreate(coupon.getId(), userId, coupon, now);
+            // 通过AopContext.currentProxy()获取当前代理对象，调用checkAndCreate方法，保证事务生效
+            IUserCouponService userCouponService = (IUserCouponService) AopContext.currentProxy();
+            userCouponService.checkAndCreate(coupon.getId(), userId, coupon);
             // 6.更新兑换码的兑换标记
             codeService.lambdaUpdate()
                     .set(ExchangeCode::getUserId, userId)
