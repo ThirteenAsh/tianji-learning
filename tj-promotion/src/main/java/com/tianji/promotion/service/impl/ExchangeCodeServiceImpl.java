@@ -6,7 +6,6 @@ import com.tianji.promotion.mapper.ExchangeCodeMapper;
 import com.tianji.promotion.service.IExchangeCodeService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.tianji.promotion.utils.CodeUtil;
-import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.BoundValueOperations;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.scheduling.annotation.Async;
@@ -16,7 +15,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static com.tianji.promotion.constants.PromotionConstants.COUPON_CODE_SERIAL_KEY;
-import static com.tianji.promotion.constants.PromotionConstants.COUPON_RANGE_KEY;
+import static com.tianji.promotion.constants.PromotionConstants.COUPON_CODE_MAP_KEY;
 
 /**
  * <p>
@@ -70,5 +69,18 @@ public class ExchangeCodeServiceImpl extends ServiceImpl<ExchangeCodeMapper, Exc
 
         // TODO 4.写入Redis缓存，member：couponId，score：兑换码的最大序列号
         // redisTemplate.opsForZSet().add(COUPON_RANGE_KEY, coupon.getId().toString(), maxSerialNum);
+    }
+
+    /**
+     * 更新兑换码的兑换标记
+     *
+     * @param serialNum 兑换码序列号
+     * @param mark         是否已兑换
+     * @return 是否更新成功
+     */
+    @Override
+    public boolean updateExchangeMark(long serialNum, boolean mark) {
+        Boolean boo = redisTemplate.opsForValue().setBit(COUPON_CODE_MAP_KEY, serialNum, mark);
+        return boo != null && boo;
     }
 }
