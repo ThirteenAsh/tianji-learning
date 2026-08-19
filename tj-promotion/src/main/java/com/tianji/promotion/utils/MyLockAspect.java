@@ -22,11 +22,11 @@ public class MyLockAspect implements Ordered {
         // 1.创建锁对象
         RLock lock = lockFactory.getLock(myLock.lockType(), myLock.name());
         // 2.尝试获取锁
-        boolean isLock = lock.tryLock(myLock.waitTime(), myLock.leaseTime(), myLock.unit());
+        boolean isLock = myLock.lockStrategy().tryLock(lock, myLock);
         // 3.判断是否成功
         if(!isLock) {
             // 3.1.失败，快速结束
-            throw new BizIllegalException("请求过于频繁，请稍后再试");
+            return null;
         }
         try {
             // 3.2.成功，执行业务

@@ -15,7 +15,6 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.tianji.promotion.utils.CodeUtil;
 import com.tianji.promotion.utils.MyLock;
 import lombok.RequiredArgsConstructor;
-import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
 import org.springframework.aop.framework.AopContext;
 import org.springframework.stereotype.Service;
@@ -76,6 +75,8 @@ public class UserCouponServiceImpl extends ServiceImpl<UserCouponMapper, UserCou
      * @param coupon   优惠券对象
      */
     @MyLock(name = "lock:coupon")
+    //Lock(name = "lock:coupon:#{userId}")
+    //这个锁是基于SPEL表达式获取用户ID的，确保每个用户领取优惠券时是独立的锁
     @Transactional
     @Override
     public void checkAndCreate(Long couponId, Long userId, Coupon coupon) {
