@@ -13,6 +13,7 @@ import com.tianji.promotion.service.IExchangeCodeService;
 import com.tianji.promotion.service.IUserCouponService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.tianji.promotion.utils.CodeUtil;
+import com.tianji.promotion.utils.MyLock;
 import lombok.RequiredArgsConstructor;
 import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
@@ -62,18 +63,8 @@ public class UserCouponServiceImpl extends ServiceImpl<UserCouponMapper, UserCou
         Long userId = UserContext.getUser();
         // 3.1.使用分布式锁，防止用户重复领取
         String key = "lock:coupon:uid:" + userId;
-        RLock lock = redissonClient.getLock(key);
-        boolean isLock = lock.tryLock();
-        if(!isLock){
-            throw new BadRequestException("请求过于频繁，请稍后再试");
-        }
-        try {
-            // 3.2.通过AopContext.currentProxy()获取当前代理对象，调用checkAndCreate方法，保证事务生效
-            IUserCouponService userCouponService = (IUserCouponService) AopContext.currentProxy();
-            userCouponService.checkAndCreate(couponId, userId, coupon);
-        } finally {
-            lock.unlock();
-        }
+        IUserCouponService userCouponService = (IUserCouponService) AopContext.currentProxy();
+        userCouponService.checkAndCreate(couponId, userId, coupon);
 
     }
 
@@ -84,6 +75,7 @@ public class UserCouponServiceImpl extends ServiceImpl<UserCouponMapper, UserCou
      * @param userId   用户ID
      * @param coupon   优惠券对象
      */
+    @MyLock(name = "lock:coupon")
     @Transactional
     @Override
     public void checkAndCreate(Long couponId, Long userId, Coupon coupon) {
