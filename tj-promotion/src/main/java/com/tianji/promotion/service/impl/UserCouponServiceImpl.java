@@ -1,11 +1,18 @@
 package com.tianji.promotion.service.impl;
 
+import com.baomidou.mybatisplus.core.metadata.OrderItem;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.tianji.common.domain.dto.PageDTO;
 import com.tianji.common.exceptions.BadRequestException;
 import com.tianji.common.exceptions.BizIllegalException;
+import com.tianji.common.utils.BeanUtils;
+import com.tianji.common.utils.CollUtils;
 import com.tianji.common.utils.UserContext;
 import com.tianji.promotion.domain.po.Coupon;
 import com.tianji.promotion.domain.po.ExchangeCode;
 import com.tianji.promotion.domain.po.UserCoupon;
+import com.tianji.promotion.domain.query.UserCouponQuery;
+import com.tianji.promotion.domain.vo.CouponVO;
 import com.tianji.promotion.enums.ExchangeCodeStatus;
 import com.tianji.promotion.mapper.CouponMapper;
 import com.tianji.promotion.mapper.UserCouponMapper;
@@ -21,6 +28,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * <p>
@@ -141,6 +151,36 @@ public class UserCouponServiceImpl extends ServiceImpl<UserCouponMapper, UserCou
             codeService.updateExchangeMark(serialNum, false);
             throw e;
         }
+    }
+
+    /**
+     * 分页查询我的优惠券
+     *
+     * @param query 查询条件
+     * @return 分页结果
+     */
+    @Override
+    public PageDTO<CouponVO> queryMyCouponPage(UserCouponQuery query) {
+        // 1.获取当前用户
+        Long userId = UserContext.getUser();
+        // 2.分页查询用户券
+        Page<UserCoupon> page = lambdaQuery()
+                .eq(UserCoupon::getUserId, userId)
+                .eq(UserCoupon::getStatus, query.getStatus())
+                .page(query.toMpPage(new OrderItem("term_end_time", true)));
+        List<UserCoupon> records = page.getRecords();
+        if (CollUtils.isEmpty(records)) {
+            return PageDTO.empty(page);
+        }
+
+        // 3.获取优惠券详细信息
+        // 3.1.获取用户券关联的优惠券id
+        Set<Long> couponIds = records.stream().map(UserCoupon::getCouponId).collect(Collectors.toSet());
+        // 3.2.查询
+        List<Coupon> coupons = couponMapper.selectBatchIds(couponIds);
+
+        // 4.封装VO
+        return PageDTO.of(page, BeanUtils.copyList(coupons, CouponVO.class));
     }
 
     private void saveUserCoupon(Long couponId, Long userId, Coupon coupon, LocalDateTime now) {
