@@ -1,14 +1,21 @@
 package com.tianji.promotion.controller;
 
 
+import com.tianji.api.dto.promotion.CouponDiscountDTO;
+import com.tianji.api.dto.promotion.OrderCouponDTO;
+import com.tianji.api.dto.promotion.OrderCourseDTO;
 import com.tianji.common.domain.dto.PageDTO;
 import com.tianji.promotion.domain.query.UserCouponQuery;
 import com.tianji.promotion.domain.vo.CouponVO;
+import com.tianji.promotion.service.IDiscountService;
 import com.tianji.promotion.service.IUserCouponService;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
+import io.swagger.annotations.ApiParam;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 /**
  * <p>
@@ -25,6 +32,7 @@ import org.springframework.web.bind.annotation.*;
 public class UserCouponController {
 
     private final IUserCouponService userCouponService;
+    private final IDiscountService discountService;
 
     @ApiOperation("领取优惠券接口")
     @PostMapping("/{couponId}/receive")
@@ -43,4 +51,17 @@ public class UserCouponController {
     public PageDTO<CouponVO> queryMyCouponPage(UserCouponQuery query){
         return userCouponService.queryMyCouponPage(query);
     }
+
+    @ApiOperation("查询我的优惠券可用方案")
+    @PostMapping("/available")
+    public List<CouponDiscountDTO> findDiscountSolution(@RequestBody List<OrderCourseDTO> orderCourses){
+        return discountService.findDiscountSolution(orderCourses);
+    }
+
+    @ApiOperation("根据券方案计算订单优惠明细")
+    @PostMapping("/discount")
+    public CouponDiscountDTO queryDiscountDetailByOrder(@RequestBody OrderCouponDTO orderCouponDTO){
+        return discountService.queryDiscountDetailByOrder(orderCouponDTO);
+    }
+
 }

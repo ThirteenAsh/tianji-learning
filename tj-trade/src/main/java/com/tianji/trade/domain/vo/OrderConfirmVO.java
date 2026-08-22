@@ -2,6 +2,7 @@ package com.tianji.trade.domain.vo;
 
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
+import com.tianji.api.dto.promotion.CouponDiscountDTO;
 import lombok.Data;
 
 import java.util.List;
@@ -13,8 +14,8 @@ public class OrderConfirmVO {
     private Long orderId;
     @ApiModelProperty("订单总金额")
     private Integer totalAmount;
-    @ApiModelProperty("优惠折扣金额")
-    private Integer discountAmount;
+    @ApiModelProperty("优惠折扣方案")
+    private List<CouponDiscountDTO> discountSolutions;
     @ApiModelProperty("订单中包含的课程")
     private List<OrderCourseVO> courses;
 }
