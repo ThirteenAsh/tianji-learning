@@ -119,7 +119,10 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
         // 5.删除购物车数据
         cartService.deleteCartByUserAndCourseIds(userId, placeOrderDTO.getCourseIds());
 
-        // 6.构建下单结果
+        // 6.核销优惠券
+        promotionClient.writeOffCoupon(couponIds);
+
+        // 7.构建下单结果
         return PlaceOrderResultVO.builder()
                 .orderId(orderId)
                 .payAmount(realAmount)
@@ -373,6 +376,10 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
         vo.setDetails(dvs);
         // 3.3.订单进度
         vo.setProgressNodes(detailService.packageProgressNodes(order, null));
+
+        // 3.4.优惠明细
+        List<String> rules = promotionClient.queryDiscountRules(order.getCouponIds());
+        vo.setCouponDesc(String.join("/", rules));
         return vo;
     }
 
