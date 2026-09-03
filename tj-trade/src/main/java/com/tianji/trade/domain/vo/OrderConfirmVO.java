@@ -15,7 +15,7 @@ public class OrderConfirmVO {
     @ApiModelProperty("订单总金额")
     private Integer totalAmount;
     @ApiModelProperty("优惠折扣方案")
-    private List<CouponDiscountDTO> discountSolutions;
+    private List<CouponDiscountDTO> discounts;
     @ApiModelProperty("订单中包含的课程")
     private List<OrderCourseVO> courses;
 }

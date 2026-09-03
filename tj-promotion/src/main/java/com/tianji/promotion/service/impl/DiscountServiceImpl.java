@@ -65,7 +65,7 @@ public class DiscountServiceImpl implements IDiscountService {
         if (CollUtils.isEmpty(availableCouponMap)) {
             return CollUtils.emptyList();
         }
-        // 3.2.排列组合
+        /*// 3.2.排列组合
         availableCoupons = new ArrayList<>(availableCouponMap.keySet());
         List<List<Coupon>> solutions = PermuteUtil.permute(availableCoupons);
         // 3.3.添加单券的方案
@@ -95,7 +95,18 @@ public class DiscountServiceImpl implements IDiscountService {
             log.error("优惠方案计算被中断，{}", e.getMessage());
         }
         // 5.筛选最优解
-        return findBestSolution(list);
+        return findBestSolution(list);*/
+        return availableCouponMap.keySet().stream()
+                .map(coupon -> calculateSolutionDiscount(
+                        availableCouponMap,
+                        orderCourses,
+                        List.of(coupon)
+                ))
+                .filter(dto -> !dto.getIds().isEmpty())
+                .sorted(Comparator.comparingInt(
+                        CouponDiscountDTO::getDiscountAmount
+                ).reversed())
+                .collect(Collectors.toList());
     }
 
     /**

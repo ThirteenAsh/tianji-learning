@@ -207,7 +207,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
         OrderConfirmVO vo = new OrderConfirmVO();
         vo.setOrderId(orderId);
         vo.setTotalAmount(total);
-        vo.setDiscountSolutions(discountSolution);
+        vo.setDiscounts(discountSolution);
         vo.setCourses(courses);
         return vo;
     }
