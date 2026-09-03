@@ -8,6 +8,7 @@ import com.tianji.api.client.promotion.PromotionClient;
 import com.tianji.api.constants.CourseStatus;
 import com.tianji.api.dto.course.CourseSimpleInfoDTO;
 import com.tianji.api.dto.promotion.CouponDiscountDTO;
+import com.tianji.api.dto.promotion.OrderCouponDTO;
 import com.tianji.api.dto.promotion.OrderCourseDTO;
 import com.tianji.api.dto.trade.OrderBasicDTO;
 import com.tianji.common.autoconfigure.mq.RabbitMqHelper;
@@ -78,8 +79,23 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
         // 2.1.计算订单金额
         Integer totalAmount = courseInfos.stream()
                 .map(CourseSimpleInfoDTO::getPrice).reduce(Integer::sum).orElse(0);
-        // TODO 2.2.计算优惠金额
+        // 2.2.计算优惠金额
         order.setDiscountAmount(0);
+        List<Long> couponIds = placeOrderDTO.getCouponIds();
+        CouponDiscountDTO discount = null;
+        if (CollUtils.isNotEmpty(couponIds)) {
+            List<OrderCourseDTO> orderCourses = courseInfos.stream()
+                    .map(c -> new OrderCourseDTO()
+                            .setId(c.getId())
+                            .setCateId(c.getThirdCateId())
+                            .setPrice(c.getPrice()))
+                    .collect(Collectors.toList());
+            discount = promotionClient.queryDiscountDetailByOrder(new OrderCouponDTO(couponIds, orderCourses));
+            if(discount != null) {
+                order.setDiscountAmount(discount.getDiscountAmount());
+                order.setCouponIds(discount.getIds());
+            }
+        }
         Integer realAmount = totalAmount - order.getDiscountAmount();
         // 2.3.封装其它信息
         order.setUserId(userId);
