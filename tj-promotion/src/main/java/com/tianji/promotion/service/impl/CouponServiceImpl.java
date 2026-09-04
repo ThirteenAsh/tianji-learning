@@ -6,10 +6,8 @@ import com.tianji.api.cache.CategoryCache;
 import com.tianji.common.domain.dto.PageDTO;
 import com.tianji.common.exceptions.BadRequestException;
 import com.tianji.common.exceptions.BizIllegalException;
-import com.tianji.common.utils.BeanUtils;
-import com.tianji.common.utils.CollUtils;
-import com.tianji.common.utils.StringUtils;
-import com.tianji.common.utils.UserContext;
+import com.tianji.common.utils.*;
+import com.tianji.promotion.constants.PromotionConstants;
 import com.tianji.promotion.domain.dto.CouponFormDTO;
 import com.tianji.promotion.domain.dto.CouponIssueFormDTO;
 import com.tianji.promotion.domain.po.Coupon;
@@ -30,11 +28,15 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.tianji.promotion.service.IExchangeCodeService;
 import com.tianji.promotion.service.IUserCouponService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.redis.connection.StringRedisConnection;
+import org.springframework.data.redis.core.RedisCallback;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -57,6 +59,7 @@ public class CouponServiceImpl extends ServiceImpl<CouponMapper, Coupon> impleme
     private final CategoryCache categoryCache;
     private final IExchangeCodeService codeService;
     private final IUserCouponService userCouponService;
+    private final StringRedisTemplate redisTemplate;
 
     /**
      * 新增优惠券
@@ -294,6 +297,35 @@ public class CouponServiceImpl extends ServiceImpl<CouponMapper, Coupon> impleme
             vo.setReceived(unusedMap.getOrDefault(c.getId(),  0L) > 0);
         }
         return list;
+    }
+
+    /**
+     * 批量发放优惠券
+     *
+     * @param coupons 优惠券列表
+     */
+    @Override
+    public void beginIssueBatch(List<Coupon> coupons) {
+        // 1.更新券状态
+        for (Coupon c : coupons) {
+            c.setStatus(CouponStatus.ISSUING);
+        }
+        updateBatchById(coupons);
+        // 2.批量缓存
+        redisTemplate.executePipelined((RedisCallback<Object>) connection -> {
+            StringRedisConnection src = (StringRedisConnection) connection;
+            for (Coupon coupon : coupons) {
+                // 2.1.组织数据
+                Map<String, String> map = new HashMap<>(4);
+                map.put("issueBeginTime", String.valueOf(DateUtils.toEpochMilli(coupon.getIssueBeginTime())));
+                map.put("issueEndTime", String.valueOf(DateUtils.toEpochMilli(coupon.getIssueEndTime())));
+                map.put("totalNum", String.valueOf(coupon.getTotalNum()));
+                map.put("userLimit", String.valueOf(coupon.getUserLimit()));
+                // 2.2.写缓存
+                src.hMSet(PromotionConstants.COUPON_CACHE_KEY_PREFIX + coupon.getId(), map);
+            }
+            return null;
+        });
     }
 
 }
