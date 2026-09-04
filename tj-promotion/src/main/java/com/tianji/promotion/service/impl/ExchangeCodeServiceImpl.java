@@ -1,7 +1,11 @@
 package com.tianji.promotion.service.impl;
 
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.tianji.common.domain.dto.PageDTO;
 import com.tianji.promotion.domain.po.Coupon;
 import com.tianji.promotion.domain.po.ExchangeCode;
+import com.tianji.promotion.domain.query.CodeQuery;
+import com.tianji.promotion.domain.vo.ExchangeCodeVO;
 import com.tianji.promotion.mapper.ExchangeCodeMapper;
 import com.tianji.promotion.service.IExchangeCodeService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
@@ -82,5 +86,22 @@ public class ExchangeCodeServiceImpl extends ServiceImpl<ExchangeCodeMapper, Exc
     public boolean updateExchangeMark(long serialNum, boolean mark) {
         Boolean boo = redisTemplate.opsForValue().setBit(COUPON_CODE_MAP_KEY, serialNum, mark);
         return boo != null && boo;
+    }
+
+    /**
+     * 分页查询兑换码
+     *
+     * @param query 查询条件
+     * @return 分页结果
+     */
+    @Override
+    public PageDTO<ExchangeCodeVO> queryCodePage(CodeQuery query) {
+        // 1.分页查询兑换码
+        Page<ExchangeCode> page = lambdaQuery()
+                .eq(ExchangeCode::getStatus, query.getStatus())
+                .eq(ExchangeCode::getExchangeTargetId, query.getCouponId())
+                .page(query.toMpPage());
+        // 2.返回数据
+        return PageDTO.of(page, c -> new ExchangeCodeVO(c.getId(), c.getCode()));
     }
 }
