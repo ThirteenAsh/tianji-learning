@@ -3,6 +3,7 @@ package com.tianji.trade.service.impl;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.tianji.api.cache.RoleCache;
+import com.tianji.api.client.promotion.PromotionClient;
 import com.tianji.api.client.user.UserClient;
 import com.tianji.api.dto.trade.OrderBasicDTO;
 import com.tianji.api.dto.user.UserDTO;
@@ -37,6 +38,7 @@ import com.tianji.trade.mapper.OrderMapper;
 import com.tianji.trade.mapper.RefundApplyMapper;
 import com.tianji.trade.service.IOrderDetailService;
 import com.tianji.trade.service.IRefundApplyService;
+import io.seata.spring.annotation.GlobalTransactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.stereotype.Service;
@@ -68,6 +70,7 @@ public class RefundApplyServiceImpl extends ServiceImpl<RefundApplyMapper, Refun
     private final RoleCache roleCache;
     private final ThreadPoolTaskExecutor sendRefundRequestExecutor;
     private final RabbitMqHelper rabbitMqHelper;
+    private final PromotionClient promotionClient;
 
     @Override
     public List<RefundApply> queryByDetailId(Long id) {
@@ -402,7 +405,8 @@ public class RefundApplyServiceImpl extends ServiceImpl<RefundApplyMapper, Refun
     }
 
     @Override
-    @Transactional
+    @GlobalTransactional(name = "refund-success", rollbackFor = Exception.class)
+    @Transactional(rollbackFor = Exception.class)
     public void handleRefundResult(RefundResultDTO result) {
         // 1.查询退款申请记录
         RefundApply refundApply = getById(result.getBizRefundOrderId());

@@ -34,6 +34,7 @@ import com.tianji.trade.mapper.OrderMapper;
 import com.tianji.trade.service.ICartService;
 import com.tianji.trade.service.IOrderDetailService;
 import com.tianji.trade.service.IOrderService;
+import io.seata.spring.annotation.GlobalTransactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -69,7 +70,8 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
     private final PromotionClient promotionClient;
 
     @Override
-    @Transactional
+    @GlobalTransactional(name = "place-order", rollbackFor = Exception.class)
+    @Transactional(rollbackFor = Exception.class)
     public PlaceOrderResultVO placeOrder(PlaceOrderDTO placeOrderDTO) {
         Long userId = UserContext.getUser();
         // 1.查询课程费用信息，如果不可购买，这里直接报错
