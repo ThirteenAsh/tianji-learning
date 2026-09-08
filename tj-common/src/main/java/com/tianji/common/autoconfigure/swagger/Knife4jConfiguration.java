@@ -4,6 +4,7 @@ import cn.hutool.core.convert.ConverterRegistry;
 import com.fasterxml.classmate.TypeResolver;
 import com.tianji.common.domain.R;
 import com.tianji.common.utils.TjTemporalConverter;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -20,6 +21,7 @@ import javax.annotation.Resource;
 import java.time.LocalDateTime;
 
 @Configuration
+@ConditionalOnClass(name = "springfox.documentation.spring.web.plugins.Docket")
 @ConditionalOnProperty(prefix = "tj.swagger", name = "enable",havingValue = "true")
 @EnableConfigurationProperties(SwaggerConfigProperties.class)
 public class Knife4jConfiguration {

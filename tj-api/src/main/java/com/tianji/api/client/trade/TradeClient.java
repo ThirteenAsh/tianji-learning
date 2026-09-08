@@ -2,6 +2,7 @@ package com.tianji.api.client.trade;
 
 import com.tianji.api.client.trade.fallback.TradeClientFallback;
 import com.tianji.api.dto.course.CoursePurchaseInfoDTO;
+import com.tianji.api.dto.trade.OrderConfirmVO;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -10,7 +11,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import java.util.List;
 import java.util.Map;
 
-@FeignClient(value = "trade-service", fallbackFactory = TradeClientFallback.class)
+@FeignClient(value = "trade-service", contextId = "trade", fallbackFactory = TradeClientFallback.class)
 public interface TradeClient {
     /**
      * 统计指定课程的报名人数
@@ -43,4 +44,10 @@ public interface TradeClient {
      */
     @GetMapping("/order-details/purchaseInfo")
     CoursePurchaseInfoDTO getPurchaseInfoOfCourse(@RequestParam("courseId") Long courseId);
+
+    /**
+     * 预下单接口，生成订单id，确认订单可用优惠券信息
+     */
+    @GetMapping("/orders/prePlaceOrder")
+    OrderConfirmVO prePlaceOrder(@RequestParam("courseIds") List<Long> courseIds);
 }

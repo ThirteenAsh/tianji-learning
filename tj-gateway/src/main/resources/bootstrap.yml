@@ -78,6 +78,10 @@ spring:
           uri: lb://promotion-service
           predicates:
             - Path=/prs/**
+        - id: aigc
+          uri: lb://aigc-service
+          predicates:
+            - Path=/aigc/**
       default-filters:
         - StripPrefix=1
       globalcors: # 全局的跨域处理

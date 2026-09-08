@@ -1,5 +1,6 @@
 package com.tianji.common.autoconfigure.mvc.advice;
 
+import com.tianji.common.annotations.NoWrapper;
 import com.tianji.common.constants.Constant;
 import com.tianji.common.domain.R;
 import com.tianji.common.utils.WebUtils;
@@ -17,6 +18,9 @@ import org.springframework.web.servlet.mvc.method.annotation.ResponseBodyAdvice;
 public class WrapperResponseBodyAdvice implements ResponseBodyAdvice<Object> {
     @Override
     public boolean supports(MethodParameter returnType, @NonNull Class<? extends HttpMessageConverter<?>> converterType) {
+        if (returnType.hasMethodAnnotation(NoWrapper.class)) {
+            return false;
+        }
         return returnType.getParameterType() != R.class && WebUtils.isGatewayRequest();
     }
 

@@ -161,4 +161,33 @@ public class WebUtils {
     public static CookieBuilder cookieBuilder(){
         return new CookieBuilder(getRequest(), getResponse());
     }
+
+    /**
+     * 设置当前请求范围的属性。
+     *
+     * <p>通过 Spring 的 RequestAttributes 操作，避免公共模块与具体 Servlet API 绑定。</p>
+     */
+    public static void setAttribute(String key, String value) {
+        RequestAttributes attributes = RequestContextHolder.getRequestAttributes();
+        if (attributes == null) {
+            return;
+        }
+        attributes.setAttribute(key, value, RequestAttributes.SCOPE_REQUEST);
+    }
+
+    public static void removeAttribute(String key) {
+        RequestAttributes attributes = RequestContextHolder.getRequestAttributes();
+        if (attributes == null) {
+            return;
+        }
+        attributes.removeAttribute(key, RequestAttributes.SCOPE_REQUEST);
+    }
+
+    public static Object getAttribute(String key) {
+        RequestAttributes attributes = RequestContextHolder.getRequestAttributes();
+        if (attributes == null) {
+            return null;
+        }
+        return attributes.getAttribute(key, RequestAttributes.SCOPE_REQUEST);
+    }
 }
