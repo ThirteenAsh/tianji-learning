@@ -1,0 +1,7 @@
+.git
+.gitignore
+*.iml
+logs/
+src/
+target/*
+!target/tj-aigc.jar
