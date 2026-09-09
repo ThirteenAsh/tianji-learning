@@ -37,6 +37,20 @@ public class NoteController {
         noteService.saveNote(noteDTO);
     }
 
+    @ApiOperation("采集笔记")
+    @PostMapping("/gathers/{id}")
+    public void gatherNote(
+            @ApiParam(value = "要采集的原笔记id", example = "1") @PathVariable("id") Long id) {
+        noteService.gatherNote(id);
+    }
+
+    @ApiOperation("取消采集笔记")
+    @DeleteMapping("/gathers/{id}")
+    public void removeGatherNote(
+            @ApiParam(value = "要取消采集的原笔记id", example = "1") @PathVariable("id") Long id) {
+        noteService.removeGatherNote(id);
+    }
+
     @ApiOperation("修改我的笔记")
     @PutMapping("/{id}")
     public void updateNote(

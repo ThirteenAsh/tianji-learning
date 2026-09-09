@@ -18,6 +18,7 @@ import com.tianji.learning.mapper.NoteMapper;
 import com.tianji.learning.service.INoteService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -64,6 +65,82 @@ public class NoteServiceImpl extends ServiceImpl<NoteMapper, Note> implements IN
 
         // 4.保存笔记
         save(note);
+    }
+
+    /**
+     * 采集一条公开笔记。
+     * <p>采集会复制原笔记，并将副本设置为当前用户的私密笔记。</p>
+     *
+     * @param id 要采集的原笔记id
+     */
+    @Override
+    @Transactional
+    public void gatherNote(Long id) {
+        // 1.获取当前登录用户
+        Long userId = UserContext.getUser();
+
+        // 2.查询原笔记，并判断笔记是否允许采集
+        Note source = getById(id);
+        if (source == null
+                || Boolean.TRUE.equals(source.getIsPrivate())
+                || Boolean.TRUE.equals(source.getHidden())
+                || Boolean.TRUE.equals(source.getIsGathered())) {
+            throw new BadRequestException("笔记不存在");
+        }
+        if (userId.equals(source.getUserId())) {
+            throw new BadRequestException("不能采集自己的笔记");
+        }
+
+        // 3.判断当前用户是否已经采集过该笔记
+        boolean gathered = lambdaQuery()
+                .eq(Note::getUserId, userId)
+                .eq(Note::getGatheredNoteId, id)
+                .eq(Note::getIsGathered, true)
+                .count() > 0;
+        if (gathered) {
+            return;
+        }
+
+        // 4.复制原笔记，并设置采集副本信息
+        Note note = getNote(userId, source);
+
+        // 5.保存采集副本
+        save(note);
+    }
+
+    private static Note getNote(Long userId, Note source) {
+        Note copy = new Note();
+        copy.setUserId(userId);
+        copy.setAuthorId(source.getAuthorId());
+        copy.setCourseId(source.getCourseId());
+        copy.setChapterId(source.getChapterId());
+        copy.setSectionId(source.getSectionId());
+        copy.setNoteMoment(source.getNoteMoment());
+        copy.setContent(source.getContent());
+        copy.setIsPrivate(true);
+        copy.setHidden(false);
+        copy.setGatheredNoteId(source.getId());
+        copy.setIsGathered(true);
+        copy.setLikedTimes(0);
+        return copy;
+    }
+
+    /**
+     * 取消采集一条笔记。
+     *
+     * @param id 要取消采集的原笔记id
+     */
+    @Override
+    public void removeGatherNote(Long id) {
+        // 1.获取当前登录用户
+        Long userId = UserContext.getUser();
+
+        // 2.删除当前用户基于原笔记创建的采集副本
+        lambdaUpdate()
+                .eq(Note::getUserId, userId)
+                .eq(Note::getGatheredNoteId, id)
+                .eq(Note::getIsGathered, true)
+                .remove();
     }
 
     /**
@@ -163,13 +240,30 @@ public class NoteServiceImpl extends ServiceImpl<NoteMapper, Note> implements IN
             return PageDTO.empty(page);
         }
 
-        // 6.收集作者id并批量查询用户信息
+        // 6.查询当前用户已经采集的原笔记id
+        Set<Long> gatheredNoteIds = new HashSet<>();
+        if (!onlyMine) {
+            Set<Long> noteIds = records.stream()
+                    .map(Note::getId)
+                    .collect(Collectors.toSet());
+            gatheredNoteIds = lambdaQuery()
+                    .select(Note::getGatheredNoteId)
+                    .eq(Note::getUserId, userId)
+                    .eq(Note::getIsGathered, true)
+                    .in(Note::getGatheredNoteId, noteIds)
+                    .list()
+                    .stream()
+                    .map(Note::getGatheredNoteId)
+                    .collect(Collectors.toSet());
+        }
+
+        // 7.收集作者id并批量查询用户信息
         Set<Long> authorIds = records.stream()
                 .map(Note::getAuthorId)
                 .collect(Collectors.toCollection(HashSet::new));
         List<UserDTO> users = userClient.queryUserByIds(authorIds);
 
-        // 7.将用户集合转换为以用户id为键的Map
+        // 8.将用户集合转换为以用户id为键的Map
         Map<Long, UserDTO> userMap = new HashMap<>(authorIds.size());
         if (CollUtils.isNotEmpty(users)) {
             userMap = users.stream().collect(Collectors.toMap(
@@ -178,13 +272,18 @@ public class NoteServiceImpl extends ServiceImpl<NoteMapper, Note> implements IN
                     (left, right) -> left));
         }
 
-        // 8.封装笔记分页结果
+        // 9.封装笔记分页结果
         List<NoteVO> list = new ArrayList<>(records.size());
         for (Note note : records) {
-            // 8.1.将笔记实体转换为VO
+            // 9.1.将笔记实体转换为VO
             NoteVO vo = BeanUtils.copyBean(note, NoteVO.class);
 
-            // 8.2.补充作者昵称和头像
+            // 9.2.查询全部笔记时，补充当前用户是否已经采集
+            if (!onlyMine) {
+                vo.setIsGathered(gatheredNoteIds.contains(note.getId()));
+            }
+
+            // 9.3.补充作者昵称和头像
             UserDTO author = userMap.get(note.getAuthorId());
             if (author != null) {
                 vo.setAuthorName(author.getName());
@@ -193,7 +292,7 @@ public class NoteServiceImpl extends ServiceImpl<NoteMapper, Note> implements IN
             list.add(vo);
         }
 
-        // 9.返回分页结果
+        // 10.返回分页结果
         return PageDTO.of(page, list);
     }
 }

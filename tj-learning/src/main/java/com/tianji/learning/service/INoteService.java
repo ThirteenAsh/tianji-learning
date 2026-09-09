@@ -20,6 +20,10 @@ public interface INoteService extends IService<Note> {
 
     void saveNote(NoteFormDTO noteDTO);
 
+    void gatherNote(Long id);
+
+    void removeGatherNote(Long id);
+
     void updateNote(Long id, NoteUpdateDTO noteDTO);
 
     void removeMyNote(Long id);
