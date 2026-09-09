@@ -6,6 +6,9 @@ import com.tianji.learning.domain.dto.NoteUpdateDTO;
 import com.tianji.learning.domain.po.Note;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.tianji.learning.domain.query.NotePageQuery;
+import com.tianji.learning.domain.query.NoteAdminPageQuery;
+import com.tianji.learning.domain.vo.NoteAdminDetailVO;
+import com.tianji.learning.domain.vo.NoteAdminVO;
 import com.tianji.learning.domain.vo.NoteVO;
 
 /**
@@ -29,4 +32,10 @@ public interface INoteService extends IService<Note> {
     void removeMyNote(Long id);
 
     PageDTO<NoteVO> queryNotePage(NotePageQuery query);
+
+    PageDTO<NoteAdminVO> queryNotePageForAdmin(NoteAdminPageQuery query);
+
+    NoteAdminDetailVO queryNoteDetailForAdmin(Long id);
+
+    void hiddenNote(Long id, Boolean hidden);
 }
