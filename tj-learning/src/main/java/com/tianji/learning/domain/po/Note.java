@@ -2,6 +2,7 @@ package com.tianji.learning.domain.po;
 
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
 import java.time.LocalDateTime;
 import com.baomidou.mybatisplus.annotation.TableId;
 import java.io.Serializable;
@@ -70,6 +71,10 @@ public class Note implements Serializable {
 
     @ApiModelProperty(value = "点赞次数")
     private Integer likedTimes;
+
+    @TableField(exist = false)
+    @ApiModelProperty(value = "被采集次数")
+    private Integer usedTimes;
 
     @ApiModelProperty(value = "创建时间")
     private LocalDateTime createTime;
