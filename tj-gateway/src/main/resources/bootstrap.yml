@@ -81,7 +81,7 @@ spring:
         - id: aigc
           uri: lb://aigc-service
           predicates:
-            - Path=/aigc/**
+            - Path=/ais/**
       default-filters:
         - StripPrefix=1
       globalcors: # 全局的跨域处理
