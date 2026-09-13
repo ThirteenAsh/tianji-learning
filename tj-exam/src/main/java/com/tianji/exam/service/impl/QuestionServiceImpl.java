@@ -253,4 +253,16 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question> i
         }
         return questions.stream().collect(Collectors.toMap(Question::getId, Question::getScore));
     }
+
+    @Override
+    @Transactional
+    public void recordAnswerStatistics(Map<Long, Boolean> correctness) {
+        for (Map.Entry<Long, Boolean> entry : correctness.entrySet()) {
+            int updated = baseMapper.incrementAnswerTimes(
+                    entry.getKey(), Boolean.TRUE.equals(entry.getValue()) ? 1 : 0);
+            if (updated != 1) {
+                throw new BadRequestException("题目不存在，无法更新作答统计");
+            }
+        }
+    }
 }

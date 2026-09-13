@@ -41,4 +41,6 @@ public interface IQuestionService extends IService<Question> {
     Boolean checkNameValid(String name);
 
     Map<Long, Integer> queryQuestionScores(List<Long> ids);
+
+    void recordAnswerStatistics(Map<Long, Boolean> correctness);
 }

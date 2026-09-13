@@ -218,6 +218,24 @@ public class LearningRecordServiceImpl extends ServiceImpl<LearningRecordMapper,
      * @return
      */
     private boolean handleExamRecord(LearningRecordFormDTO recordDTO, Long userId) {
+        // 1.校验课表属于当前用户
+        LearningLesson lesson = lessonService.getById(recordDTO.getLessonId());
+        if (lesson == null || !userId.equals(lesson.getUserId())) {
+            throw new BizIllegalException("无权提交该课程的考试记录");
+        }
+
+        // 2.同一考试小节已记录完成时，不重复累计学习进度
+        boolean finished = lambdaQuery()
+                .eq(LearningRecord::getLessonId, recordDTO.getLessonId())
+                .eq(LearningRecord::getSectionId, recordDTO.getSectionId())
+                .eq(LearningRecord::getUserId, userId)
+                .eq(LearningRecord::getFinished, true)
+                .count() > 0;
+        if (finished) {
+            return false;
+        }
+
+        // 3.保存考试小节完成记录
         //转换DTO为PO
         LearningRecord record = BeanUtils.copyBean(recordDTO, LearningRecord.class);
         record.setUserId(userId);

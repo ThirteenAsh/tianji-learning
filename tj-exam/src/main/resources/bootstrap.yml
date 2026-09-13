@@ -5,6 +5,10 @@ server:
   error:
     include-message: always #返回的响应体带上message
 spring:
+  data:
+    mongodb:
+      uri: mongodb://root:root123@mongo:27017/tj_exam?authSource=admin
+      auto-index-creation: true
   profiles:
     active: dev
   application:
